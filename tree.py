@@ -59,7 +59,7 @@ class Tree:
                 q.append("sentinal")
             elif curr_node != "sentinal":
                 print(curr_node.name, "-->", end=' ')
-                print(len(curr_node.timeseries), end=' ')
+                print(len(curr_node.timeseries), end='\n')
                 for child in curr_node.children:
                     q.append(child)
 
@@ -75,9 +75,13 @@ class Tree:
                     q = [child]
                     while(len(q) > 0):
                         curr_node = q.pop(0)
-                        for index, data_point in enumerate(curr_node.timeseries[self.offset:length_in]):
+                        for index, data_point in enumerate(curr_node.timeseries[self.offset:-length_in]):
+                            if len(data[stock_ticker]) <= index: 
+                                data[stock_ticker].append([])
                             data[stock_ticker][index].append(data_point)
                         q = q + curr_node.children
+        for key in data.keys():
+            data[key] = np.array(data[key])
         return data
     
     def get_close_data(self,stocks_in=[]):
@@ -86,7 +90,7 @@ class Tree:
             stocks_in = self.get_tickers()
         
         for stock_ticker in stocks_in:
-            data[stock_ticker] = []
+            closes[stock_ticker] = []
             for child in self.root.children:
                 if child.name == stock_ticker:
                     closes[stock_ticker] = child.close[self.offset:]
@@ -96,22 +100,34 @@ class Tree:
         ret = []
         for stock in self.root.children:
             ret.append(stock.name)
+        return ret
 
-    def get_data_for_network(self, length_in=1, type="close"):
+    def get_data_for_network(self, length_in=5, type="close"):
         
-        indicators = get_indicator_data(length_in=length_in)
-        if type == "close": subject_data = get_close_data()
+        indicators = self.get_indicator_data(length_in=length_in)
+        if type == "close": subject_data = self.get_close_data()
 
         x = indicators
-        y = generate_training_data(data_in=subject_data, length_in=1)
+        print(len(x["BA"]), len(x["BA"][0]))
+
+        y = self.generate_training_data(data_in=subject_data, length_in=length_in)
+        assert(len(x) == len(y))
+
+        print(len(x["BA"]), len(y["BA"]))
+        assert(len(x["BA"]) == len(y["BA"]))
+        return x,y
 
     
-    def generate_training_data(data_in, length_in=1):
-        keys = data_in.keys()
+    def generate_training_data(self,data_in, length_in=1):
+        keys = list(data_in.keys())
         ret = {}
+        for stock in keys:
+            ret[stock] = np.empty((len(data_in[keys[0]])-length_in))
+            #ret[stock][:] = np.NaN
         for i in range(len(data_in[keys[0]]) - length_in):
             for stock in keys:
-                ret[stock][i] = (data_in[stock][i+length_in] - data_in[stock][i]) / data_in[stock][i]
+                ret[stock][i] = ((data_in[stock][i+length_in] - data_in[stock][i]) / data_in[stock][i])*100
+        return ret
     
     
     

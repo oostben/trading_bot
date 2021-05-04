@@ -9,8 +9,10 @@ class Node:
         self.name = name_in
         if parents_in is None:
             self.parents = []
-        else:
+        elif isinstance(parents_in, list):
             self.parents = parents_in
+        else:
+            self.parents = [parents_in]
         self.children = []
         self.length = 0
         self.timeseries = []
@@ -65,7 +67,7 @@ class Ticker(Node):
         self.high = np.array([bar.h for bar in self.bars])
         self.open = np.array([bar.o for bar in self.bars])
         self.close = np.array([bar.c for bar in self.bars])
-        self.timeseries = np.array([bar.c for bar in self.bars])
+        self.timeseries = np.array([bar.c/max(self.close) for bar in self.bars])
 
         self.been_updated = True
 
@@ -157,9 +159,9 @@ class GC(Node):
 
             if child.get_name() == symbol_in:
                 for ind in child.children:
-                    if name == symbol_in+"_SMA_"+str(fast_in)+"_"+type_in:
+                    if ind.name == symbol_in+"_SMA_"+str(fast_in)+"_"+type_in:
                         fast = ind
-                    if name == symbol_in+"_SMA_"+str(slow_in)+"_"+type_in:
+                    if ind.name == symbol_in+"_SMA_"+str(slow_in)+"_"+type_in:
                         slow = ind
 
                 Node.__init__(self, name_in=potential_name, parents_in=[fast,slow])
@@ -174,6 +176,6 @@ class GC(Node):
         fast = self.parents[0].timeseries
         slow = self.parents[1].timeseries
         self.timeseries = fast-slow
-        self.timeseries[self.timeseries > 0] = 1
-        self.timeseries[self.timeseries < 0] = -1
+        # self.timeseries[self.timeseries > 0] = 1
+        # self.timeseries[self.timeseries < 0] = -1
         self.been_updated = True
