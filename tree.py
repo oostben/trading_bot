@@ -102,7 +102,7 @@ class Tree:
             ret.append(stock.name)
         return ret
 
-    def get_data_for_network(self, length_in=5, type="close"):
+    def get_data_for_network(self, length_in=1, type="close"):
         
         indicators = self.get_indicator_data(length_in=length_in)
         if type == "close": subject_data = self.get_close_data()

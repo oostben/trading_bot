@@ -99,45 +99,6 @@ class Network(nn.Module):
             x_tensor = torch.Tensor(inds)
             ret.append(self.network(x_tensor))
         return ret
-            
-
-
-# tickers = tickers.get_tickers()
-# # print(len(tickers))
-# indList = IndicatorList(tickers)
-# x, y = indList.get_training_data()
-# # print(x)
-# x_train = []
-# y_train = []
-# x_test = [] 
-# y_test = []
-
-
-# for ticker in tickers:
-#     # for i in range(300):
-#     x_train.extend(x[ticker][:-100])
-#     y_train.extend(y[ticker][:-100])
-#     # for i in range(300,350):
-#     x_test.extend(x[ticker][-100:])
-#     y_test.extend(y[ticker][-100:])
-# print(x_train)
-# print(x)
-# print()
-# print(y)
-# print("X:",np.array(x).shape)
-# print("y:",np.array(y).shape)
-
-# net = Network(activation=nn.Sigmoid())
-# net.train_model(x_train,y_train)
-
-# y_pred = net.test(x_test)
-
-# correct = 0
-# # print(y_pred)
-# for i in range(len(y_test)):
-#     if (y_test[i] > 0.5 and y_pred[i] > 0.5) or (y_test[i] < 0.5 and y_pred[i] < 0.5):
-#         correct += 1
-
-# print(correct, len(y_test), correct/len(y_test))
-
-# print(net)
+    def predict(self, x):
+        x_tensor = torch.Tensor(x)
+        return float(self.network(x_tensor))
