@@ -6,3 +6,6 @@ vscode/*
 .vscode/*
 creds.txt
 .env
+__pycache__/
+plots/*
+constants_private.py
