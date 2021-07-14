@@ -33,4 +33,4 @@ def update_data_db():
         data_to_write = data_to_write.append(full)
     data_to_write.to_sql('trading_data', con=get_engine("trading_bot_db"), if_exists='replace')
     
-update_data_db()
+# update_data_db()

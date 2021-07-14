@@ -3,6 +3,8 @@ import numpy as np
 from constants import *
 from sqlalchemy import create_engine
 import random
+import pandas as pd
+from datetime import datetime
 
 def get_engine(dbName):
     return create_engine("postgresql://"+DB_USERNAME+":"+DB_PASSWORD+"@"+DB_URL +":"+DB_PORT+ "/" + dbName)
@@ -69,19 +71,6 @@ def get_cash_val():
     account = api.get_account()
     return account.cash
 
-
-def node_already_exists(root_in, name_in):
-    q = [root_in]
-    while len(q) > 0:
-        curr_node = q.pop(0)
-        if curr_node.name == name_in:
-            return True
-        q.extend(curr_node.children)
-    return False
-
-def normalize_list(lis_in):
-    return lis_in / max(lis_in)
-
 def get_sp_500_tickers():
     file1 = open('s&p500.txt', 'r')
     lines = file1.readlines()
@@ -98,3 +87,55 @@ def get_tickers():
         return TICKERS_SMALL
     if TICKERS_SETTING == "large":
         return TICKERS_LARGE
+    if TICKERS_SETTING == "best":
+        return TICKERS_BEST
+
+def write_predictions(predictions):
+    data = [[p[0],p[1]] for p in predictions.items()]
+    df = pd.DataFrame(data, columns = ['ticker', 'prediction'])
+    df.to_sql('predictions', con=get_engine("trading_bot_db"), if_exists='replace')
+
+def write_positions_to_db():
+    api = tradeapi.REST()
+    portfolio = api.list_positions()
+    # if len(portfolio) > 0:
+    data = [[p.symbol,p.qty] for p in portfolio]
+    df = pd.DataFrame(data, columns = ['ticker', 'quantity'])
+    df.to_sql('positions', con=get_engine("trading_bot_db"), if_exists='replace')
+
+def write_last_time_updated():
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y") + " "
+    dt_string+= datetime.today().strftime("%I:%M %p")
+    data = [dt_string]
+    df = pd.DataFrame(data, columns = ['last_updated'])
+    df.to_sql('last_updated', con=get_engine("trading_bot_db"), if_exists='replace')
+
+def store_cash_val():
+    cash_val = float(get_cash_val())
+    data = [cash_val]
+    df = pd.DataFrame(data, columns = ['cash_val'])
+    df.to_sql('cash_val', con=get_engine("trading_bot_db"), if_exists='replace')
+    return cash_val
+
+def calculate_multiplier(cash_val, predictions):
+    total_pred_val = 0
+    for val in predictions.values():
+        if val > 0: total_pred_val += val
+    if total_pred_val > 0:
+        return cash_val / total_pred_val
+    else:
+        return 0
+
+def submit_orders(predictions,multiplier):
+    api = tradeapi.REST()
+    for key,val in predictions.items():
+        if val > 0:
+            api.submit_order(
+                symbol=key,
+                # qty=val*multiplier-.01,
+                qty=1,
+                side='buy',
+                type='market',
+                time_in_force='day'
+            )
