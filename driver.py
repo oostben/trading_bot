@@ -1,39 +1,47 @@
 from network import *
-import alpaca_trade_api as tradeapi
-import pandas as pd
+from boost import *
+from data_loader import *
+
+from model_interface import *
 from helpers import *
 from update_data_db import *
-from data_loader import data_loader
 
 #make sure data exists in RDS
-update_data_db()
+# update_data_db()
 
 #get x,y and dict for actually making the predictions for tommorrow
-x,y, dict_for_predictions = data_loader()
+data_loader = Data_Loader(val_percent = 15)
+x_train, y_train, x_validation, y_validation, dict_for_predictions = data_loader.load()
 
-#shuffle the data
-x,y = shuffle_data(x,y)
-
-#even out data so it's a 50 50 split between stocks moving up/down
-x,y = even_out_data(x,y)
-
-#split out validation and trianing
-x_train, y_train, x_validation, y_validation = val_split(x,y, percent=10)
 
 #get number of indicators we are using to set the first layer of the net
-num_inds = len(x[0])
+num_inds = len(x_train[0])
 
 #initalize the network
-net = Network(num_inds, activation=torch.nn.ReLU(), learning_rate_in=LR)
+boost = IModel(Boost())
+net = IModel(Network(num_inds=num_inds, activation=torch.nn.ReLU(), learning_rate_in=LR, epochs=EPOCHS))
 
-#trian network
-net.train_model(x_train,y_train,x_validation,y_validation,epochs=EPOCHS)
+boost.set_data(x_train, y_train, x_validation, y_validation)
+net.set_data(x_train, y_train, x_validation, y_validation)
 
+
+#trian
+boost.train()
+net.train()
+temp1 = boost.get_val_y()
+temp2 = net.get_val_y()
+correct = 0
+for i in range(len(temp1)):
+    print(temp1[i], temp2[i], (temp1[i]+temp2[i])/2,y_validation[i])
+    if ((temp1[i]+temp2[i])/2 > 0 and y_validation[i] > 0) or ((temp1[i]+temp2[i])/2 < 0 and y_validation[i] < 0):
+        correct +=1
+print(correct / len(temp1))
 # get predictions
 predictions = {}
 for ticker in get_tickers():
-    y_pred = net.predict(dict_for_predictions[ticker])
-    predictions[ticker] = y_pred
+    y_pred1 = net.predict(dict_for_predictions[ticker])
+    y_pred2 = boost.predict(dict_for_predictions[ticker])
+    predictions[ticker] = float((y_pred1/y_pred2))
 
 #sort predictions
 predictions = dict(reversed(sorted(predictions.items(), key=lambda item: item[1])))

@@ -12,6 +12,8 @@ def update_data_db():
         full = pd.DataFrame(index=bars.index)
         full["ticker"] = ticker
         full['price'] = bars['close']
+        full['pct_change'] = full['price'].pct_change()
+        full['std'] = full['pct_change'].std()
 
         for i in range(len(ranges)):
             for j in range(i+1,len(ranges)):
