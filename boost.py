@@ -14,19 +14,6 @@ class Boost(SModel):
                 subsample=0.7,
                 colsample_bytree=0.8)
 
-        # self.model = XGBRegressor(
-        #     silent=False, 
-        #     scale_pos_weight=1,
-        #     learning_rate=0.001,  
-        #     colsample_bytree = 0.4,
-        #     subsample = .07,
-        #     objective='reg:squarederror', 
-        #     n_estimators=1000, 
-        #     reg_alpha = 0.3,
-        #     max_depth=6, 
-        #     gamma=0
-        # )
-
     def train(self):
         eval_set = [(self.x_train, self.y_train), (self.x_validation, self.y_validation)]
         self.model.fit(self.x_train, self.y_train, eval_metric="mae", eval_set=eval_set, verbose=True)
